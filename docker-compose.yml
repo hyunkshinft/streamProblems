@@ -1,0 +1,20 @@
+version: '2'
+
+services:
+  postgres:
+    build: ./docker/postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_database
+    volumes:
+      - ./data:/data
+
+  stream-problem:
+    build: ./docker/stream-problem
+    links:
+      - "postgres"
+    depends_on:
+      - "postgres"
