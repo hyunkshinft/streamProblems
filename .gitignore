@@ -1,5 +1,6 @@
 *.log
 target/
+*.jar
 
 data/break.csv
 .idea/

@@ -24,12 +24,6 @@ This repository contains a toy app which simply uses pgjdbc and `PGReplicationSt
 
 This typically takes about 15-20 minutes to happen following the instructions below, on some occasions it has taken an hour. One word of warning: make sure you have plenty of free disk space before running the command that starts inserting data into PostgreSQL. In about 15 minutes you might see about 40GB of disk use.
 
- **Build the package**
-
-```
-mvn clean && mvn package
-```
-
 **Build, start up and daemonize the containers**
 
 ```

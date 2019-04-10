@@ -18,3 +18,5 @@ services:
       - "postgres"
     depends_on:
       - "postgres"
+    volumes:
+      - ./:/streamProblems
