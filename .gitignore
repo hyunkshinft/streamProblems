@@ -1,6 +1,6 @@
 *.log
 target/
-*.jar
+docker/*/*.jar
 
 data/break.csv
 .idea/
