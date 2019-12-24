@@ -16,7 +16,7 @@ public class streamProblem {
   public static void main(String args[]) throws SQLException, InterruptedException {
     System.out.println("Welcome to the first circle.");
     String replicationSlotName = "test_slot";
-    String url = "jdbc:postgresql://postgres:5432/test_database?loggerLevel=TRACE";
+    String url = "jdbc:postgresql://relay:5432/test_database?loggerLevel=TRACE";
     ByteBuffer msg;
     PGReplicationStream stream;
     LogSequenceNumber lsn;

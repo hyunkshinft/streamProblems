@@ -50,3 +50,62 @@ while true; do psql -U test_user -h localhost -d test_database -c "begin; COPY t
 ```
 
 You'll know when the application has encountered the error because the `docker logs` command will exit. At this point it should be OK to interrupt the `while` loop that is copying data into PostgreSQL.
+
+## Proposed fix
+
+The test scenario has been modified in order to quickly and consistently reproduce the error discussed in the issue https://github.com/pgjdbc/pgjdbc/issues/1592.
+
+A new driver file, postgresql-42.2.6-patched.jar has the following fix.
+ 
+```
+postgresql-42.2.6-patch.
+
+--- a/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java
++++ b/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java
+@@ -8,6 +8,7 @@ package org.postgresql.core;
+ import java.io.EOFException;
+ import java.io.IOException;
+ import java.io.InputStream;
++import java.net.SocketTimeoutException;
+ 
+ /**
+  * A faster version of BufferedInputStream. Does no synchronisation and allows direct access to the
+@@ -137,7 +138,12 @@ public class VisibleBufferedInputStream extends InputStream {
+       }
+       canFit = buffer.length - endIndex;
+     }
+-    int read = wrapped.read(buffer, endIndex, canFit);
++    int read = 0;
++    try {
++      read = wrapped.read(buffer, endIndex, canFit);
++    } catch (SocketTimeoutException e) {
++      // ignore
++    }
+     if (read < 0) {
+       return false;
+     }
+@@ -211,7 +217,12 @@ public class VisibleBufferedInputStream extends InputStream {
+ 
+     // then directly from wrapped stream
+     do {
+-      int r = wrapped.read(to, off, len);
++      int r;
++      try {
++        r = wrapped.read(to, off, len);
++      } catch (SocketTimeoutException e) {
++        return read;
++      }
+       if (r <= 0) {
+         return (read == 0) ? r : read;
+       }
+
+```
+
+**To test with the fix**
+
+Uncomment the following lines in docker-compose.yml and run the test again. This test case reveals another error that is different from "Unexpected packet type" error.
+
+```
+    environment:
+      PGJDBC_DRIVER: postgresql-42.2.6-patched.jar 
+```

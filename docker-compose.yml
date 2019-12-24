@@ -4,19 +4,34 @@ services:
   postgres:
     build: ./docker/postgres
     ports:
-      - "5432:5432"
+      - "35432:5432"
     environment:
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
       POSTGRES_DB: test_database
     volumes:
       - ./data:/data
-
-  stream-problem:
-    build: ./docker/stream-problem
+  relay:
+    build: ./docker/relay
     links:
       - "postgres"
     depends_on:
       - "postgres"
+    ports:
+      - "25432:5432"
+    environment:
+      SPLIT_SIZE: 4096
+      TARGETPORT: 5432
+      TARGET: postgres
+      PORT: 5432
+      DELAY: 1500
+  stream-problem:
+    build: ./docker/stream-problem
+    links:
+      - "relay"
+    depends_on:
+      - "relay"
     volumes:
       - ./:/streamProblems
+#    environment:
+#      PGJDBC_DRIVER: postgresql-42.2.6-patched.jar 
