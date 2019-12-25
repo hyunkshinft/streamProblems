@@ -46,7 +46,7 @@ gunzip data/break.csv.gz
 
 ```
 docker exec -it streamproblems_postgres_1 bash
-while true; do psql -U test_user -h localhost -d test_database -c "begin; COPY test_rows(name) from '/data/break.csv'; commit;"; sleep 10; done
+psql -U test_user -h localhost -d test_database -c "begin; COPY test_rows(name) from '/data/break.csv'; commit;"
 ```
 
 You'll know when the application has encountered the error because the `docker logs` command will exit. At this point it should be OK to interrupt the `while` loop that is copying data into PostgreSQL.
