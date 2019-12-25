@@ -103,7 +103,7 @@ postgresql-42.2.6-patch.
 
 **To test with the fix**
 
-Uncomment the following lines in docker-compose.yml and run the test again. This test case reveals another error that is different from "Unexpected packet type" error.
+Uncomment the following lines in docker-compose.yml and run the test again.
 
 ```
     environment:
