@@ -1,3 +1,18 @@
+diff --git a/pgjdbc/src/main/java/org/postgresql/core/PGStream.java b/pgjdbc/src/main/java/org/postgresql/core/PGStream.java
+index 7ed6fc3e..453e8c98 100644
+--- a/pgjdbc/src/main/java/org/postgresql/core/PGStream.java
++++ b/pgjdbc/src/main/java/org/postgresql/core/PGStream.java
+@@ -128,6 +128,8 @@ public class PGStream implements Closeable, Flushable {
+     int soTimeout = getNetworkTimeout();
+     setNetworkTimeout(1);
+     try {
++     if (!pgInput.ensureBytes(1, false))
++        return false;
+       return pgInput.peek() != -1;
+     } catch (SocketTimeoutException e) {
+       return false;
+diff --git a/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java b/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java
+index 90854d44..2c2b7a20 100644
 --- a/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java
 +++ b/pgjdbc/src/main/java/org/postgresql/core/VisibleBufferedInputStream.java
 @@ -8,6 +8,7 @@ package org.postgresql.core;
@@ -8,7 +23,40 @@
  
  /**
   * A faster version of BufferedInputStream. Does no synchronisation and allows direct access to the
-@@ -137,7 +138,12 @@ public class VisibleBufferedInputStream extends InputStream {
+@@ -104,9 +105,22 @@ public class VisibleBufferedInputStream extends InputStream {
+    * @throws IOException If reading of the wrapped stream failed.
+    */
+   public boolean ensureBytes(int n) throws IOException {
++    return ensureBytes(n, true);
++  }
++
++  /**
++   * Ensures that the buffer contains at least n bytes. This method invalidates the buffer and index
++   * fields.
++   *
++   * @param n The amount of bytes to ensure exists in buffer
++   * @param block whether or not to block the IO
++   * @return true if required bytes are available and false if EOF or the parameter block was false and socket timeout occurred.
++   * @throws IOException If reading of the wrapped stream failed.
++   */
++  public boolean ensureBytes(int n, boolean block) throws IOException {
+     int required = n - endIndex + index;
+     while (required > 0) {
+-      if (!readMore(required)) {
++      if (!readMore(required, block)) {
+         return false;
+       }
+       required = n - endIndex + index;
+@@ -121,7 +135,7 @@ public class VisibleBufferedInputStream extends InputStream {
+    * @return True if at least some bytes were read.
+    * @throws IOException If reading of the wrapped stream failed.
+    */
+-  private boolean readMore(int wanted) throws IOException {
++  private boolean readMore(int wanted, boolean block) throws IOException {
+     if (endIndex == index) {
+       index = 0;
+       endIndex = 0;
+@@ -137,7 +151,15 @@ public class VisibleBufferedInputStream extends InputStream {
        }
        canFit = buffer.length - endIndex;
      }
@@ -16,13 +64,16 @@
 +    int read = 0;
 +    try {
 +      read = wrapped.read(buffer, endIndex, canFit);
++      if (!block && read == 0)
++        return false;
 +    } catch (SocketTimeoutException e) {
-+      // ignore
++      if (!block)
++        return false;
 +    }
      if (read < 0) {
        return false;
      }
-@@ -211,7 +217,12 @@ public class VisibleBufferedInputStream extends InputStream {
+@@ -211,7 +233,12 @@ public class VisibleBufferedInputStream extends InputStream {
  
      // then directly from wrapped stream
      do {
@@ -36,3 +87,12 @@
        if (r <= 0) {
          return (read == 0) ? r : read;
        }
+@@ -287,7 +314,7 @@ public class VisibleBufferedInputStream extends InputStream {
+           return pos - index;
+         }
+       }
+-      if (!readMore(STRING_SCAN_SPAN)) {
++      if (!readMore(STRING_SCAN_SPAN, true)) {
+         throw new EOFException();
+       }
+       pos = index;
